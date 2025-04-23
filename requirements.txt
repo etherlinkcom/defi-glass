@@ -1,0 +1,8 @@
+dash
+numpy
+pandas
+gunicorn
+web3
+matplotlib
+dotenv
+psycopg2-binary

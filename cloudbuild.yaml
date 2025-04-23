@@ -1,0 +1,26 @@
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '--platform',  'linux/amd64',  '-t', 'europe-west2-docker.pkg.dev/etherlink-infra-dev-6204/glass/glass:latest-amd64', '.']
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'europe-west2-docker.pkg.dev/etherlink-infra-dev-6204/glass/glass:latest-amd64']
+  - name: "gcr.io/cloud-builders/gcloud"
+    args:
+      - 'beta'
+      - 'run'
+      - 'jobs'
+      - 'deploy'
+      - 'glass-service'
+      - '--image'
+      - 'europe-west2-docker.pkg.dev/etherlink-infra-dev-6204/glass/glass:latest-amd64'
+      - '--region'
+      - 'europe-west2'
+      - '--execution-environment'
+      - 'gen2'
+      - '--cpu'
+      - '1'
+    timeout: '1200s'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+serviceAccount: project-service-account@etherlink-infra-dev-6204.iam.gserviceaccount.com
