@@ -1,12 +1,12 @@
 import os
 import logging
 
-from hanji import write_orderbook_TVL_to_db
+from hanji import hanji_get_total_tvl
 
 logging.basicConfig(level=logging.INFO)
 
 functions_to_run = [
-    write_orderbook_TVL_to_db
+    hanji_get_total_tvl
 ]
 
 def main():

@@ -2,6 +2,7 @@ import requests
 from datetime import datetime
 import psycopg2
 import os
+from web3 import Web3
 
 # Dictionary of orderbook addresses
 orderbooks = {
@@ -10,13 +11,34 @@ orderbooks = {
     "wbtc-usdc": "0xbB6B01D94E3f6Ebae8647cB56D544f57928aB758",
 }
 
+NODE_URL = "https://node.mainnet.etherlink.com" # TODO: move to env vars
+
+TOKEN_ABI = [
+    {
+        "inputs": [{"internalType": "address", "name": "user", "type": "address"}],
+        "name": "balanceOf",
+        "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+        "stateMutability": "view",
+        "type": "function",
+    },
+    {
+        "inputs": [],
+        "name": "totalSupply",
+        "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+        "stateMutability": "view",
+        "type": "function",
+    },
+]
+
 DB_NAME = os.getenv("DB_NAME")
 DB_HOST = os.getenv("DB_HOST")
 DB_USER = os.getenv("DB_USER")
 DB_PASSWORD = os.getenv("DB_PASSWORD")
 DB_PORT = os.getenv("DB_PORT")
 
-def write_orderbook_TVL_to_db():
+w3 = Web3(Web3.HTTPProvider(NODE_URL))
+
+def hanji_get_total_tvl():
     """Writes orderbook TVL data to the SQL database."""
     
     # Database connection parameters - replace with your actual credentials
@@ -45,19 +67,32 @@ def write_orderbook_TVL_to_db():
             quote_token_address = market_data["quoteToken"]["contractAddress"]
             quote_token_symbol = market_data["quoteToken"]["symbol"]
 
-            base_amount = market_data['tvlTokenX']
-            quote_amount = market_data['tvlTokenY']
+            baseTokenContract = w3.eth.contract(
+                address=Web3.to_checksum_address(base_token_address), abi=TOKEN_ABI
+            )
+
+            quoteTokenContract = w3.eth.contract(
+                address=Web3.to_checksum_address(quote_token_address), abi=TOKEN_ABI
+            )
+
+            baseTokenBalance = baseTokenContract.functions.balanceOf(
+                Web3.to_checksum_address(market_identifier)
+            ).call() / (10 ** market_data["baseToken"]["decimals"])
+
+            quoteTokenBalance = quoteTokenContract.functions.balanceOf(
+                Web3.to_checksum_address(market_identifier)
+            ).call() / (10 ** market_data["quoteToken"]["decimals"])
 
             cursor.execute(
                 """INSERT INTO tvl_history (protocol, type, token, amount, timestamp, address)
                    VALUES (%s, %s, %s, %s, %s, %s)""",
-                ('hanji', orderbook_name, base_token_symbol, float(base_amount), current_timestamp, base_token_address)
+                ('hanji', orderbook_name, base_token_symbol, float(baseTokenBalance), current_timestamp, base_token_address)
             )
 
             cursor.execute(
                 """INSERT INTO tvl_history (protocol, type, token, amount, timestamp, address)
                    VALUES (%s, %s, %s, %s, %s, %s)""",
-                ('hanji', orderbook_name, quote_token_symbol, float(quote_amount), current_timestamp, quote_token_address)
+                ('hanji', orderbook_name, quote_token_symbol, float(quoteTokenBalance), current_timestamp, quote_token_address)
             )
 
         except Exception as e:
