@@ -1,8 +1,9 @@
+import os
 import requests
 from datetime import datetime
-import psycopg2
-import os
 from web3 import Web3
+
+w3 = Web3(Web3.HTTPProvider(os.getenv("ETHERLINK_NODE_URL")))
 
 # Dictionary of orderbook addresses
 orderbooks = {
@@ -10,8 +11,6 @@ orderbooks = {
     "weth-usdc": "0x65eA4dD7f789C71C0f57Ed84b3BDC3062898D3CB",
     "wbtc-usdc": "0xbB6B01D94E3f6Ebae8647cB56D544f57928aB758",
 }
-
-NODE_URL = "https://node.mainnet.etherlink.com" # TODO: move to env vars
 
 TOKEN_ABI = [
     {
@@ -30,27 +29,8 @@ TOKEN_ABI = [
     },
 ]
 
-DB_NAME = os.getenv("DB_NAME")
-DB_HOST = os.getenv("DB_HOST")
-DB_USER = os.getenv("DB_USER")
-DB_PASSWORD = os.getenv("DB_PASSWORD")
-DB_PORT = os.getenv("DB_PORT")
-
-w3 = Web3(Web3.HTTPProvider(NODE_URL))
-
-def hanji_get_total_tvl():
+def hanji_get_total_tvl(cursor):
     """Writes orderbook TVL data to the SQL database."""
-    
-    # Database connection parameters - replace with your actual credentials
-    conn = psycopg2.connect(
-        dbname=DB_NAME,
-        user=DB_USER,
-        password=DB_PASSWORD,
-        host=DB_HOST,
-        port=DB_PORT
-    )
-    cursor = conn.cursor()
-
     current_timestamp = datetime.utcnow().isoformat()
 
     for orderbook_name in orderbooks:
@@ -97,10 +77,4 @@ def hanji_get_total_tvl():
 
         except Exception as e:
             print(f"Error processing {orderbook_name}: {e}")
-            conn.rollback()
-            continue
-
-    conn.commit()
-    cursor.close()
-    conn.close()
-    print("Data successfully written to the database.")
+            raise 
