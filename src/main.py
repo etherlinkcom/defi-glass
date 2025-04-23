@@ -2,11 +2,13 @@ import os
 import logging
 
 from hanji import hanji_get_total_tvl
+from superlend import superlend_get_total_tvl
 
 logging.basicConfig(level=logging.INFO)
 
 functions_to_run = [
-    hanji_get_total_tvl
+    hanji_get_total_tvl,
+    superlend_get_total_tvl
 ]
 
 def main():
